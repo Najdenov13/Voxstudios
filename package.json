@@ -1,0 +1,35 @@
+{
+  "name": "teams-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate": "ts-node scripts/generate-pages.ts"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.8.0",
+    "@azure/msal-node": "^3.5.0",
+    "@heroicons/react": "^2.2.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "dotenv": "^16.5.0",
+    "next": "latest",
+    "next-auth": "^4.24.11",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/react": "18.3.20",
+    "@types/react-dom": "^18.2.19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.1.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
+    "typescript": "5.8.3"
+  }
+}
