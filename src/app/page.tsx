@@ -112,7 +112,7 @@ const initialStages: Stage[] = [
 
 export default function HomePage() {
   const searchParams = useSearchParams();
-  const projectId = searchParams.get('project');
+  const projectId = searchParams?.get('project') || null;
   const [stages, setStages] = useState<Stage[]>(initialStages);
   const [expandedStages, setExpandedStages] = useState<number[]>([]);
 
