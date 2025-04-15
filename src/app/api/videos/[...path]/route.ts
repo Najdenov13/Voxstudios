@@ -5,10 +5,10 @@ import { stat } from 'fs/promises';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: { path: string[] } }
 ) {
   try {
-    const filePath = path.join(process.cwd(), 'public', 'uploads', ...params.path);
+    const filePath = path.join(process.cwd(), 'public', 'uploads', ...context.params.path);
 
     // Check if file exists and get its size
     const stats = await stat(filePath);
