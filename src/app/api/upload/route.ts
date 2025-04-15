@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('Successfully accessed Teams drive:', {
-        driveId: teamDrive.id,
-        parentReference: teamDrive.parentReference
+        driveId: teamDrive.parentReference.driveId,
+        itemId: teamDrive.id
       });
 
       // Create folder structure based on file type
@@ -120,29 +120,18 @@ export async function POST(request: NextRequest) {
         try {
           console.log(`Attempting to access/create folder: ${folder} in path: ${currentPath}`);
           
-          // Try to get the folder
-          const folderItem = await client
+          // Create the folder directly using the drive endpoint
+          const newFolder = await client
             .api(`/drives/${teamDrive.parentReference.driveId}/items/${parentId}/children`)
-            .filter(`name eq '${folder}' and folder ne null`)
-            .get();
+            .post({
+              name: folder,
+              folder: {},
+              "@microsoft.graph.conflictBehavior": "replace"
+            });
 
-          if (folderItem.value && folderItem.value.length > 0) {
-            // Folder exists, use its ID
-            parentId = folderItem.value[0].id;
-            console.log(`Found existing folder: ${folder} with ID: ${parentId}`);
-          } else {
-            // Create the folder
-            console.log(`Creating new folder: ${folder}`);
-            const newFolder = await client
-              .api(`/drives/${teamDrive.parentReference.driveId}/items/${parentId}/children`)
-              .post({
-                name: folder,
-                folder: {},
-                "@microsoft.graph.conflictBehavior": "rename"
-              });
-            parentId = newFolder.id;
-            console.log(`Created new folder: ${folder} with ID: ${parentId}`);
-          }
+          parentId = newFolder.id;
+          console.log(`Created/accessed folder: ${folder} with ID: ${parentId}`);
+          
         } catch (error: any) {
           console.error(`Error creating/accessing folder ${folder}:`, error);
           console.error('Full error details:', {
