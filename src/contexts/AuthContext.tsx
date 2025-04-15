@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
@@ -65,30 +65,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check for stored user data on mount
-    const checkAuth = () => {
-      const storedUser = Cookies.get('user');
-      const storedAuth = Cookies.get('isAuthenticated');
-      
-      if (storedUser && storedAuth === 'true') {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-          setIsAdmin(parsedUser.role === 'admin');
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          // Clear invalid cookies
-          Cookies.remove('user');
-          Cookies.remove('isAuthenticated');
-        }
-      }
-      setIsLoading(false);
-    };
+  const checkAuth = useCallback(async () => {
+    try {
+      const userCookie = Cookies.get('user');
+      const isAuthenticated = Cookies.get('isAuthenticated') === 'true';
 
-    checkAuth();
+      if (!isAuthenticated || !userCookie) {
+        await logout();
+        return;
+      }
+
+      try {
+        const user = JSON.parse(userCookie);
+        if (!user || !user.id || !user.email || !user.role) {
+          await logout();
+          return;
+        }
+        setUser(user);
+        setIsAuthenticated(true);
+      } catch {
+        await logout();
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      await logout();
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Run authentication check on mount and when cookies change
+  useEffect(() => {
+    checkAuth();
+    
+    // Watch for cookie changes
+    const cookieCheckInterval = setInterval(checkAuth, 1000);
+    
+    return () => clearInterval(cookieCheckInterval);
+  }, [checkAuth]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -128,9 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
+    // Remove all authentication-related cookies
     Cookies.remove('user');
     Cookies.remove('isAuthenticated');
-    router.push('/login');
+    Cookies.remove('selectedProject');
+    // Force navigation to login page
+    router.replace('/login');
   };
 
   return (

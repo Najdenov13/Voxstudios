@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readdir } from 'fs/promises';
 import path from 'path';
+import { auth } from '@/auth';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -9,6 +10,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     
     const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
     const videosPath = path.join(publicUploadsPath, projectId, 'final-videos');
+
+    // Check authentication
+    const { isAuthenticated, user } = await auth(request);
+    if (!isAuthenticated || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
     try {
       const files = await readdir(videosPath);
