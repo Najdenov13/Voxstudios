@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,32 +16,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create the final-videos directory in public/uploads
-    const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
-    const projectPath = path.join(publicUploadsPath, projectId);
-    const finalVideosPath = path.join(projectPath, 'final-videos');
-    
-    try {
-      await mkdir(finalVideosPath, { recursive: true });
-    } catch (error) {
-      console.error('Error creating directories:', error);
-    }
-
-    // Generate file path and URL
+    // Generate file name
     const fileName = `${title}${getFileExtension(file.name)}`;
-    const filePath = path.join(finalVideosPath, fileName);
-    const publicUrl = `/uploads/${projectId}/final-videos/${encodeURIComponent(fileName)}`;
+    const blobPath = `uploads/${projectId}/final-videos/${fileName}`;
 
-    // Convert File to Buffer and save it
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    await writeFile(filePath, buffer);
+    // Upload to Vercel Blob Storage
+    const blob = await put(blobPath, file, {
+      access: 'public',
+    });
 
     return NextResponse.json({
       success: true,
       file: {
         name: fileName,
-        url: publicUrl
+        url: blob.url
       }
     });
 
