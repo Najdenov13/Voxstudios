@@ -6,6 +6,14 @@ export async function GET(request: NextRequest) {
   try {
     const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
     
+    // Create the directory if it doesn't exist
+    try {
+      await readdir(projectsDir);
+    } catch (error) {
+      // Directory doesn't exist, return empty list
+      return NextResponse.json({ projects: [] });
+    }
+    
     // Read all project directories
     const projectDirs = await readdir(projectsDir, { withFileTypes: true });
     const projects = await Promise.all(
