@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir, mkdir } from 'fs/promises';
+import { readdir } from 'fs/promises';
 import path from 'path';
 import { auth } from '@/auth';
+import { existsSync } from 'fs';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -21,12 +22,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    try {
-      // Ensure directories exist
-      await mkdir(publicUploadsPath, { recursive: true });
-      await mkdir(projectPath, { recursive: true });
-      await mkdir(videosPath, { recursive: true });
+    // Check if directory exists before trying to read it
+    if (!existsSync(videosPath)) {
+      return NextResponse.json({
+        success: true,
+        videos: []
+      });
+    }
 
+    try {
       const files = await readdir(videosPath);
       const videos = files.filter(file => {
         const ext = path.extname(file).toLowerCase();
