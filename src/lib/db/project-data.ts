@@ -1,5 +1,5 @@
-import { sql } from '@vercel/postgres';
-import { QueryResult } from '@vercel/postgres';
+import { db } from './config';
+import { QueryResult } from 'pg';
 
 export interface ProjectData {
   id: number;
@@ -12,10 +12,10 @@ export interface ProjectData {
 
 export async function getProjectData(projectId: number, key: string): Promise<ProjectData | null> {
   try {
-    const result: QueryResult<ProjectData> = await sql`
-      SELECT * FROM project_data 
-      WHERE project_id = ${projectId} AND key = ${key}
-    `;
+    const result: QueryResult<ProjectData> = await db.query(
+      'SELECT * FROM project_data WHERE project_id = $1 AND key = $2',
+      [projectId, key]
+    );
     return result.rows[0] || null;
   } catch (error) {
     console.error('Error getting project data:', error);
@@ -25,15 +25,18 @@ export async function getProjectData(projectId: number, key: string): Promise<Pr
 
 export async function setProjectData(projectId: number, key: string, value: any): Promise<ProjectData> {
   try {
-    const result: QueryResult<ProjectData> = await sql`
+    const result: QueryResult<ProjectData> = await db.query(
+      `
       INSERT INTO project_data (project_id, key, value)
-      VALUES (${projectId}, ${key}, ${JSON.stringify(value)})
+      VALUES ($1, $2, $3)
       ON CONFLICT (project_id, key) 
       DO UPDATE SET 
-        value = ${JSON.stringify(value)},
+        value = $3,
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
-    `;
+      `,
+      [projectId, key, value]
+    );
     return result.rows[0];
   } catch (error) {
     console.error('Error setting project data:', error);
@@ -43,10 +46,10 @@ export async function setProjectData(projectId: number, key: string, value: any)
 
 export async function deleteProjectData(projectId: number, key: string): Promise<void> {
   try {
-    await sql`
-      DELETE FROM project_data 
-      WHERE project_id = ${projectId} AND key = ${key}
-    `;
+    await db.query(
+      'DELETE FROM project_data WHERE project_id = $1 AND key = $2',
+      [projectId, key]
+    );
   } catch (error) {
     console.error('Error deleting project data:', error);
     throw error;
@@ -55,11 +58,10 @@ export async function deleteProjectData(projectId: number, key: string): Promise
 
 export async function listProjectData(projectId: number): Promise<ProjectData[]> {
   try {
-    const result: QueryResult<ProjectData> = await sql`
-      SELECT * FROM project_data 
-      WHERE project_id = ${projectId}
-      ORDER BY created_at DESC
-    `;
+    const result: QueryResult<ProjectData> = await db.query(
+      'SELECT * FROM project_data WHERE project_id = $1 ORDER BY created_at DESC',
+      [projectId]
+    );
     return result.rows;
   } catch (error) {
     console.error('Error listing project data:', error);

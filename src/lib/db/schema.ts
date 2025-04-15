@@ -1,19 +1,19 @@
-import { sql } from '@vercel/postgres';
+import { db } from './config';
 
 export async function createTables() {
   try {
     // Create projects table
-    await sql`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS projects (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-    `;
+    `);
 
     // Create project_data table for storing project-specific data
-    await sql`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS project_data (
         id SERIAL PRIMARY KEY,
         project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -23,10 +23,10 @@ export async function createTables() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(project_id, key)
       );
-    `;
+    `);
 
     // Create users table
-    await sql`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -34,10 +34,10 @@ export async function createTables() {
         role VARCHAR(50) NOT NULL DEFAULT 'user',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
-    `;
+    `);
 
     // Create project_members table for user-project relationships
-    await sql`
+    await db.query(`
       CREATE TABLE IF NOT EXISTS project_members (
         id SERIAL PRIMARY KEY,
         project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
@@ -46,7 +46,7 @@ export async function createTables() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(project_id, user_id)
       );
-    `;
+    `);
 
     console.log('Tables created successfully');
   } catch (error) {

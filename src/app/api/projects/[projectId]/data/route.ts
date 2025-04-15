@@ -1,45 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getProjectData, setProjectData, deleteProjectData, listProjectData } from '@/lib/db/project-data';
 
 // GET /api/projects/[projectId]/data
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const projectId = parseInt(params.projectId);
+    const projectId = parseInt(request.nextUrl.pathname.split('/')[3]);
     
     if (isNaN(projectId)) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid project ID' },
         { status: 400 }
       );
     }
     
     // Check if a specific key was requested
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
+    const key = request.nextUrl.searchParams.get('key');
     
     if (key) {
       // Get specific data
       const data = await getProjectData(projectId, key);
       
       if (!data) {
-        return NextResponse.json(
+        return Response.json(
           { error: 'Data not found' },
           { status: 404 }
         );
       }
       
-      return NextResponse.json(data);
+      return Response.json(data);
     } else {
       // List all data for the project
       const data = await listProjectData(projectId);
-      return NextResponse.json(data);
+      return Response.json(data);
     }
   } catch (error) {
     console.error('Error in GET /api/projects/[projectId]/data:', error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
@@ -47,15 +43,12 @@ export async function GET(
 }
 
 // POST /api/projects/[projectId]/data
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const projectId = parseInt(params.projectId);
+    const projectId = parseInt(request.nextUrl.pathname.split('/')[3]);
     
     if (isNaN(projectId)) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid project ID' },
         { status: 400 }
       );
@@ -65,17 +58,17 @@ export async function POST(
     const { key, value } = body;
     
     if (!key) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Key is required' },
         { status: 400 }
       );
     }
     
     const data = await setProjectData(projectId, key, value);
-    return NextResponse.json(data, { status: 201 });
+    return Response.json(data, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/projects/[projectId]/data:', error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
@@ -83,36 +76,32 @@ export async function POST(
 }
 
 // DELETE /api/projects/[projectId]/data
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    const projectId = parseInt(params.projectId);
+    const projectId = parseInt(request.nextUrl.pathname.split('/')[3]);
     
     if (isNaN(projectId)) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Invalid project ID' },
         { status: 400 }
       );
     }
     
     // Check if a specific key was requested
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
+    const key = request.nextUrl.searchParams.get('key');
     
     if (!key) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Key is required' },
         { status: 400 }
       );
     }
     
     await deleteProjectData(projectId, key);
-    return NextResponse.json({ success: true });
+    return Response.json({ success: true });
   } catch (error) {
     console.error('Error in DELETE /api/projects/[projectId]/data:', error);
-    return NextResponse.json(
+    return Response.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
