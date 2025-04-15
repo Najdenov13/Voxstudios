@@ -1,17 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { projectName } = req.body;
+    const { projectName } = await request.json();
 
     if (!projectName) {
-      return res.status(400).json({ error: 'Project name is required' });
+      return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
     // Create projects directory if it doesn't exist
@@ -45,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await mkdir(path.join(projectDir, stage), { recursive: true });
     }
 
-    return res.status(200).json({ 
+    return NextResponse.json({ 
       success: true, 
       project: {
         id: projectName,
@@ -55,6 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (error) {
     console.error('Error in handler:', error);
-    return res.status(500).json({ error: 'Failed to process the request: ' + (error as Error).message });
+    return NextResponse.json(
+      { error: 'Failed to process the request: ' + (error as Error).message },
+      { status: 500 }
+    );
   }
 } 

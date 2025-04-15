@@ -1,12 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { readdir, readFile } from 'fs/promises';
 import path from 'path';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function GET(request: NextRequest) {
   try {
     const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
     
@@ -38,9 +34,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .filter((project): project is NonNullable<typeof project> => project !== null)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return res.status(200).json({ projects: validProjects });
+    return NextResponse.json({ projects: validProjects });
   } catch (error) {
     console.error('Error listing projects:', error);
-    return res.status(500).json({ error: 'Failed to list projects' });
+    return NextResponse.json({ error: 'Failed to list projects' }, { status: 500 });
   }
 } 
