@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir } from 'fs/promises';
+import { readdir, mkdir } from 'fs/promises';
 import path from 'path';
 import { auth } from '@/auth';
 
@@ -9,7 +9,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const projectId = request.nextUrl.pathname.split('/')[3];
     
     const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
-    const videosPath = path.join(publicUploadsPath, projectId, 'final-videos');
+    const projectPath = path.join(publicUploadsPath, projectId);
+    const videosPath = path.join(projectPath, 'final-videos');
 
     // Check authentication
     const { isAuthenticated, user } = await auth(request);
@@ -21,6 +22,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     try {
+      // Ensure directories exist
+      await mkdir(publicUploadsPath, { recursive: true });
+      await mkdir(projectPath, { recursive: true });
+      await mkdir(videosPath, { recursive: true });
+
       const files = await readdir(videosPath);
       const videos = files.filter(file => {
         const ext = path.extname(file).toLowerCase();
@@ -35,7 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         }))
       });
     } catch (error) {
-      // If directory doesn't exist or can't be read, return empty list
+      console.error('Error accessing videos directory:', error);
       return NextResponse.json({
         success: true,
         videos: []
