@@ -1,37 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir, readFile } from 'fs/promises';
-import path from 'path';
+import { list } from '@vercel/blob';
 
 export async function GET(request: NextRequest) {
   try {
-    const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
+    // List all project metadata files
+    const { blobs } = await list({ prefix: 'projects/' });
     
-    // Create the directory if it doesn't exist
-    try {
-      await readdir(projectsDir);
-    } catch (error) {
-      // Directory doesn't exist, return empty list
-      return NextResponse.json({ projects: [] });
-    }
-    
-    // Read all project directories
-    const projectDirs = await readdir(projectsDir, { withFileTypes: true });
+    // Filter and process metadata files
     const projects = await Promise.all(
-      projectDirs
-        .filter(dirent => dirent.isDirectory())
-        .map(async dirent => {
+      blobs
+        .filter(blob => blob.pathname.endsWith('/metadata.json'))
+        .map(async blob => {
           try {
-            const metadataPath = path.join(projectsDir, dirent.name, 'metadata.json');
-            const metadataContent = await readFile(metadataPath, 'utf-8');
-            const metadata = JSON.parse(metadataContent);
+            const response = await fetch(blob.url);
+            const metadata = await response.json();
             
             return {
-              id: dirent.name,
+              id: blob.pathname.split('/')[1], // Get project name from path
               name: metadata.name,
               createdAt: metadata.createdAt
             };
           } catch (error) {
-            console.error(`Error reading metadata for project ${dirent.name}:`, error);
+            console.error(`Error reading metadata for project ${blob.pathname}:`, error);
             return null;
           }
         })

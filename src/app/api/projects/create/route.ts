@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,15 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
-    // Create projects directory if it doesn't exist
-    const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
-    await mkdir(projectsDir, { recursive: true });
-
-    // Create project directory
-    const projectDir = path.join(projectsDir, projectName);
-    await mkdir(projectDir, { recursive: true });
-
-    // Create project metadata file
+    // Create project metadata
     const metadata = {
       name: projectName,
       createdAt: new Date().toISOString(),
@@ -30,23 +21,20 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    await writeFile(
-      path.join(projectDir, 'metadata.json'),
-      JSON.stringify(metadata, null, 2)
+    // Store metadata in Blob Storage
+    const metadataBlob = await put(
+      `projects/${projectName}/metadata.json`,
+      JSON.stringify(metadata, null, 2),
+      { access: 'public' }
     );
-
-    // Create stage directories
-    const stages = ['stage1', 'stage2', 'stage3', 'stage4'];
-    for (const stage of stages) {
-      await mkdir(path.join(projectDir, stage), { recursive: true });
-    }
 
     return NextResponse.json({ 
       success: true, 
       project: {
         id: projectName,
         name: projectName,
-        createdAt: metadata.createdAt
+        createdAt: metadata.createdAt,
+        metadataUrl: metadataBlob.url
       }
     });
   } catch (error) {

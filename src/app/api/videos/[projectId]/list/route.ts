@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readdir } from 'fs/promises';
-import path from 'path';
+import { list } from '@vercel/blob';
 
 export async function GET(
   request: NextRequest,
@@ -8,30 +7,24 @@ export async function GET(
 ) {
   try {
     const projectId = params.projectId;
-    const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
-    const videosPath = path.join(publicUploadsPath, projectId, 'final-videos');
+    const prefix = `uploads/${projectId}/final-videos/`;
 
-    try {
-      const files = await readdir(videosPath);
-      const videos = files.filter(file => {
-        const ext = path.extname(file).toLowerCase();
-        return ['.mp4', '.webm', '.mov', '.avi'].includes(ext);
-      });
+    // List all videos in the project's final-videos directory
+    const { blobs } = await list({ prefix });
 
-      return NextResponse.json({
-        success: true,
-        videos: videos.map(name => ({
-          name,
-          url: `/uploads/${projectId}/final-videos/${encodeURIComponent(name)}`
-        }))
-      });
-    } catch (error) {
-      // If directory doesn't exist or can't be read, return empty list
-      return NextResponse.json({
-        success: true,
-        videos: []
-      });
-    }
+    // Filter video files by extension
+    const videos = blobs.filter(blob => {
+      const ext = blob.pathname.split('.').pop()?.toLowerCase();
+      return ['mp4', 'webm', 'mov', 'avi'].includes(ext || '');
+    });
+
+    return NextResponse.json({
+      success: true,
+      videos: videos.map(blob => ({
+        name: blob.pathname.split('/').pop() || '',
+        url: blob.url
+      }))
+    });
   } catch (error) {
     console.error('Error listing videos:', error);
     return NextResponse.json(
