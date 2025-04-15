@@ -3,18 +3,12 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { stat } from 'fs/promises';
 
-type RouteSegment = {
-  params: {
-    path: string[];
-  };
-};
-
 export async function GET(
   request: NextRequest,
-  { params }: RouteSegment
-) {
+  context: { params: { path: string[] } }
+): Promise<NextResponse> {
   try {
-    const filePath = path.join(process.cwd(), 'public', 'uploads', ...params.path);
+    const filePath = path.join(process.cwd(), 'public', 'uploads', ...context.params.path);
 
     // Check if file exists and get its size
     const stats = await stat(filePath);
