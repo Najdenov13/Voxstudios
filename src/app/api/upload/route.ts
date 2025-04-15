@@ -5,13 +5,7 @@ import { ClientSecretCredential } from '@azure/identity';
 // Configure the API route to handle large files
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// Add config to ensure environment variables are available
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const maxDuration = 60;
 
 // Create a custom response stream
 const encoder = new TextEncoder();
