@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { ChevronDownIcon, ChevronUpIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -110,7 +110,7 @@ const initialStages: Stage[] = [
   }
 ];
 
-export default function HomePage() {
+function ProjectDashboard() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('project');
   const [stages, setStages] = useState<Stage[]>(initialStages);
@@ -254,5 +254,18 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-gray-700">Loading dashboard...</h2>
+        <p className="mt-2 text-gray-500">Please wait while we load your project information.</p>
+      </div>
+    </div>}>
+      <ProjectDashboard />
+    </Suspense>
   );
 } 

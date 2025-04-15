@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { list, head } from '@vercel/blob';
 
+// Configure the API route to use Edge Runtime
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   context: { params: { path: string[] } }
