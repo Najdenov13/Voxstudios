@@ -1,13 +1,7 @@
 {
-  "functions": {
-    "api/upload": {
-      "maxDuration": 60
-    },
-    "api/upload-final-video": {
-      "maxDuration": 60
-    },
-    "api/videos/[...path]": {
-      "maxDuration": 60
-    }
-  }
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "outputDirectory": ".next"
 } 

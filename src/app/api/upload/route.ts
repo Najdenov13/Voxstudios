@@ -5,7 +5,9 @@ import { ClientSecretCredential } from '@azure/identity';
 // Configure the API route to handle large files
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes timeout
+
+// Create a custom response stream
+const encoder = new TextEncoder();
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,76 +53,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      console.log('Getting Azure credentials...');
-      // Get access token using client credentials
-      const credential = new ClientSecretCredential(
-        process.env.AZURE_TENANT_ID!,
-        process.env.AZURE_CLIENT_ID!,
-        process.env.AZURE_CLIENT_SECRET!
-      );
+    // Convert file to buffer
+    const fileBuffer = await file.arrayBuffer();
 
-      console.log('Getting token...');
-      const token = await credential.getToken('https://graph.microsoft.com/.default');
-      
-      // Initialize Graph client
-      const client = Client.init({
-        authProvider: (done) => {
-          done(null, token.token);
-        },
-      });
-
-      console.log('Getting SharePoint site...');
-      // First get the site
-      const site = await client.api('/sites/adamass.sharepoint.com:/sites/VoxStudiosplatform')
-        .get();
-
-      console.log('Getting drive...');
-      // Then get the drive
-      const drive = await client.api(`/sites/${site.id}/drives`)
-        .get();
-
-      // Create folder structure for different file types
-      let folderPath = projectName;
-      if (file.type.startsWith('audio/')) {
-        folderPath += '/voices';
-      } else if (file.type.startsWith('video/')) {
-        folderPath += '/videos';
-      } else if (file.type.startsWith('text/')) {
-        folderPath += '/documents';
+    // Return success response with file info
+    return NextResponse.json({ 
+      success: true,
+      message: 'File received successfully',
+      fileInfo: {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        projectName
       }
+    });
 
-      // Get the project folder path
-      const projectFolderPath = `${folderPath}/${file.name}`;
-      console.log('Uploading to path:', projectFolderPath);
-
-      // Upload to the project folder
-      const fileBuffer = await file.arrayBuffer();
-      console.log('File buffer size:', fileBuffer.byteLength);
-      
-      const response = await client.api(`/sites/${site.id}/drives/${drive.value[0].id}/items/root:/${projectFolderPath}:/content`)
-        .put(fileBuffer);
-
-      console.log('Upload successful:', response);
-
-      return NextResponse.json({ 
-        success: true,
-        message: `File uploaded successfully to project folder: ${projectFolderPath}`,
-        fileUrl: response.webUrl
-      });
-
-    } catch (err) {
-      console.error('Failed to upload to SharePoint:', err);
-      return NextResponse.json(
-        { error: 'Failed to upload to SharePoint: ' + (err as Error).message },
-        { status: 500 }
-      );
-    }
-    
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file: ' + (error as Error).message },
+      { error: 'Failed to process file: ' + (error as Error).message },
       { status: 500 }
     );
   }

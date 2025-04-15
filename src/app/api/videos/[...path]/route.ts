@@ -3,6 +3,10 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { stat } from 'fs/promises';
 
+// Configure the API route to use Edge Runtime
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   context: { params: { path: string[] } }
