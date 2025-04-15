@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions } from 'next-auth';
+import NextAuth, { NextAuthOptions, getServerSession as getNextAuthServerSession } from 'next-auth';
 import { Account, DefaultSession } from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 
@@ -36,4 +36,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-}; 
+};
+
+export const getServerSession = () => getNextAuthServerSession(authOptions); 

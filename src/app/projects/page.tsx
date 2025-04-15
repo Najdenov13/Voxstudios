@@ -7,82 +7,47 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProject } from '@/contexts/ProjectContext';
 import { PlusIcon, FolderIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 
+// Use the same Project interface as in ProjectContext
 interface Project {
   id: string;
   name: string;
-  description: string;
-  status: 'active' | 'completed';
-  lastUpdated: string;
+  createdAt: string;
 }
 
+// Sample projects for initial state
 const sampleProjects: Project[] = [
   {
-    id: '1',
+    id: 'sample-1',
     name: 'Marketing Campaign 2024',
-    description: 'Voice-over production for Q1 marketing campaign',
-    status: 'active',
-    lastUpdated: '2024-02-20'
+    createdAt: '2024-02-20'
   },
   {
-    id: '2',
+    id: 'sample-2',
     name: 'Product Launch Video',
-    description: 'Voice-over for new product announcement',
-    status: 'active',
-    lastUpdated: '2024-02-18'
+    createdAt: '2024-02-18'
   }
 ];
 
 export default function ProjectsPage() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
-  const { projects, setProjects, setCurrentProject } = useProject();
+  const { projects, setProjects, setCurrentProject, createProject, loading } = useProject();
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDescription, setNewProjectDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect if not authenticated
-    if (!user) {
+    if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
-    // Load projects from localStorage
-    try {
-      const storedProjects = localStorage.getItem('projects');
-      if (storedProjects) {
-        const parsedProjects = JSON.parse(storedProjects);
-        if (Array.isArray(parsedProjects) && parsedProjects.every(isValidProject)) {
-          setProjects(parsedProjects);
-        } else {
-          // If stored data is invalid, use sample projects
-          setProjects(sampleProjects);
-          localStorage.setItem('projects', JSON.stringify(sampleProjects));
-        }
-      } else {
-        // If no stored projects, use sample projects
-        setProjects(sampleProjects);
-        localStorage.setItem('projects', JSON.stringify(sampleProjects));
-      }
-    } catch (error) {
-      console.error('Error loading projects:', error);
+    // If no projects are loaded yet, use sample projects
+    if (projects.length === 0 && !loading) {
       setProjects(sampleProjects);
-      localStorage.setItem('projects', JSON.stringify(sampleProjects));
     }
-  }, [user, router, setProjects]);
-
-  // Validate project object structure
-  const isValidProject = (project: any): project is Project => {
-    return (
-      typeof project === 'object' &&
-      typeof project.id === 'string' &&
-      typeof project.name === 'string' &&
-      typeof project.description === 'string' &&
-      (project.status === 'active' || project.status === 'completed') &&
-      typeof project.lastUpdated === 'string'
-    );
-  };
+  }, [isAuthenticated, router, projects, setProjects, loading]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,39 +59,14 @@ export default function ProjectsPage() {
     }
 
     try {
-      // Create a new project object
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: newProjectName.trim(),
-        description: newProjectDescription,
-        status: 'active',
-        lastUpdated: new Date().toISOString().split('T')[0]
-      };
-
-      // Call the API to create a new directory for the project
-      const response = await fetch('/api/projects/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ projectName: newProject.name }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create project directory');
-      }
-
-      // Add the new project to the list
-      const updatedProjects = [...projects, newProject];
-      setProjects(updatedProjects);
-      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+      // Use the createProject function from context
+      await createProject(newProjectName.trim());
+      
+      // Reset form and close modal
       setNewProjectName('');
-      setNewProjectDescription('');
       setShowNewProjectModal(false);
-
-      // Set the new project as current and navigate to dashboard
-      setCurrentProject(newProject);
+      
+      // Navigate to dashboard
       router.push('/');
     } catch (err) {
       console.error('Error creating project:', err);
@@ -139,7 +79,7 @@ export default function ProjectsPage() {
     router.push('/');
   };
 
-  if (!user) {
+  if (!isAuthenticated) {
     return null; // Don't render anything while redirecting
   }
 
@@ -169,7 +109,7 @@ export default function ProjectsPage() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
                   <p className="text-sm text-gray-500">
-                    Created {new Date(project.lastUpdated).toLocaleDateString()}
+                    Created {new Date(project.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -178,7 +118,7 @@ export default function ProjectsPage() {
           ))}
         </div>
 
-        {projects.length === 0 && (
+        {projects.length === 0 && !loading && (
           <div className="text-center text-gray-500 mt-8">
             No projects found. Create a new project to get started.
           </div>
@@ -202,18 +142,6 @@ export default function ProjectsPage() {
                   onChange={(e) => setNewProjectName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter project name"
-                />
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={newProjectDescription}
-                  onChange={(e) => setNewProjectDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  rows={3}
-                  required
                 />
               </div>
               {error && (

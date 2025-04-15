@@ -1,72 +1,60 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import fs from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
-import { Client } from '@microsoft/microsoft-graph-client';
-import { getToken } from '@/lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
     const { projectName } = req.body;
 
     if (!projectName) {
       return res.status(400).json({ error: 'Project name is required' });
     }
 
-    try {
-      console.log('Received project creation request for:', projectName);
+    // Create projects directory if it doesn't exist
+    const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
+    await mkdir(projectsDir, { recursive: true });
 
-      // Create a new directory locally
-      const projectDir = path.join(process.cwd(), 'teams', projectName);
-      if (!fs.existsSync(projectDir)) {
-        fs.mkdirSync(projectDir, { recursive: true });
+    // Create project directory
+    const projectDir = path.join(projectsDir, projectName);
+    await mkdir(projectDir, { recursive: true });
+
+    // Create project metadata file
+    const metadata = {
+      name: projectName,
+      createdAt: new Date().toISOString(),
+      stages: {
+        stage1: { completed: false },
+        stage2: { completed: false },
+        stage3: { completed: false },
+        stage4: { completed: false }
       }
+    };
 
-      console.log('Creating local directory at:', projectDir);
+    await writeFile(
+      path.join(projectDir, 'metadata.json'),
+      JSON.stringify(metadata, null, 2)
+    );
 
-      // Get access token for Microsoft Graph API
-      console.log('Obtaining access token for Microsoft Graph API');
-      const accessToken = await getToken();
-      console.log('Access token obtained');
-
-      // Initialize Microsoft Graph client
-      const client = Client.init({
-        authProvider: (done) => {
-          done(null, accessToken);
-        },
-      });
-
-      // Define the Teams folder path where you want to create the project folder
-      const teamId = process.env.TEAMS_TEAM_ID;
-      const channelId = process.env.TEAMS_CHANNEL_ID;
-
-      if (!teamId || !channelId) {
-        throw new Error('Teams configuration is missing');
-      }
-
-      console.log('Creating folder in Teams for teamId:', teamId, 'channelId:', channelId);
-
-      // Create a new folder in Teams
-      const driveItem = await client
-        .api(`/teams/${teamId}/channels/${channelId}/filesFolder`)
-        .get();
-
-      await client
-        .api(`/drives/${driveItem.parentReference.driveId}/items/${driveItem.id}/children`)
-        .post({
-          name: projectName,
-          folder: {},
-          "@microsoft.graph.conflictBehavior": "rename"
-        });
-
-      console.log('Folder created successfully in Teams');
-
-      return res.status(200).json({ message: 'Project directory created successfully in Teams' });
-    } catch (error) {
-      console.error('Error creating project directory:', error as Error);
-      return res.status(500).json({ error: 'Failed to create project directory: ' + (error as Error).message });
+    // Create stage directories
+    const stages = ['stage1', 'stage2', 'stage3', 'stage4'];
+    for (const stage of stages) {
+      await mkdir(path.join(projectDir, stage), { recursive: true });
     }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    return res.status(200).json({ 
+      success: true, 
+      project: {
+        id: projectName,
+        name: projectName,
+        createdAt: metadata.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Error in handler:', error);
+    return res.status(500).json({ error: 'Failed to process the request: ' + (error as Error).message });
   }
 } 

@@ -3,14 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProject } from '@/contexts/ProjectContext';
+import Link from 'next/link';
+import { 
+  ArrowLeftIcon, 
+  ArrowRightIcon, 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  ExclamationCircleIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline';
 
 type StepStatus = 'approved' | 'not_approved' | 'needs_revision' | 'in_progress';
 
 interface Step {
   id: string;
   name: string;
-  description: string;
   status: StepStatus;
+  description: string;
 }
 
 interface Stage {
@@ -21,269 +31,281 @@ interface Stage {
   completion: number;
 }
 
-interface Project {
-  id: string;
-  name: string;
-  client: string;
-  createdAt: string;
-  status: 'active' | 'completed';
-  stages: Stage[];
-}
-
-// Example data - replace with actual data storage
-const initialProjects: Project[] = [
+// Sample stages data
+const sampleStages: Stage[] = [
   {
-    id: '1',
-    name: 'Corporate Video Campaign',
-    client: 'Adventure',
-    createdAt: '2024-03-15',
-    status: 'active',
-    stages: [
+    id: 'stage1',
+    name: 'Stage 1: Initial Setup',
+    description: 'Set up your project and upload initial content',
+    steps: [
       {
-        id: 's1',
-        name: 'Original Video Campaign',
-        description: 'Upload and process the original video',
-        steps: [
-          {
-            id: 's1-1',
-            name: 'Video Upload',
-            description: 'Upload the original video file',
-            status: 'in_progress'
-          },
-          {
-            id: 's1-2',
-            name: 'Auditioning Brief',
-            description: 'Define voice requirements',
-            status: 'in_progress'
-          },
-          {
-            id: 's1-3',
-            name: 'Voice Selection',
-            description: 'Select voice options',
-            status: 'in_progress'
-          }
-        ],
-        completion: 0
+        id: 'step1',
+        name: 'Project Setup',
+        status: 'approved',
+        description: 'Create and configure your project'
       },
       {
-        id: 's2',
-        name: 'Auditioning Brief',
-        description: 'Define voice requirements and checkpoints',
-        steps: [
-          {
-            id: 's2-1',
-            name: 'Script Review',
-            description: 'Review and approve script',
-            status: 'in_progress'
-          },
-          {
-            id: 's2-2',
-            name: 'Feedback',
-            description: 'Provide feedback',
-            status: 'in_progress'
-          },
-          {
-            id: 's2-3',
-            name: 'Final Approval',
-            description: 'Approve final script',
-            status: 'in_progress'
-          }
-        ],
-        completion: 0
+        id: 'step2',
+        name: 'Content Upload',
+        status: 'in_progress',
+        description: 'Upload your initial content'
       },
       {
-        id: 's3',
-        name: 'Auditioning Voices',
-        description: 'Review and select voice options',
-        steps: [
-          {
-            id: 's3-1',
-            name: 'Voice Recording',
-            description: 'Record voice samples',
-            status: 'in_progress'
-          },
-          {
-            id: 's3-2',
-            name: 'Quality Check',
-            description: 'Review recording quality',
-            status: 'in_progress'
-          },
-          {
-            id: 's3-3',
-            name: 'Final Selection',
-            description: 'Select final voice',
-            status: 'in_progress'
-          }
-        ],
-        completion: 0
+        id: 'step3',
+        name: 'Voice Selection',
+        status: 'not_approved',
+        description: 'Select voices for your project'
       }
-    ]
+    ],
+    completion: 33
+  },
+  {
+    id: 'stage2',
+    name: 'Stage 2: Voice Generation',
+    description: 'Generate and customize voices for your project',
+    steps: [
+      {
+        id: 'step1',
+        name: 'Base Voice Selection',
+        status: 'not_approved',
+        description: 'Select base voices for your project'
+      },
+      {
+        id: 'step2',
+        name: 'AI Voice Generation',
+        status: 'not_approved',
+        description: 'Generate AI-powered voices'
+      },
+      {
+        id: 'step3',
+        name: 'Voice Customization',
+        status: 'not_approved',
+        description: 'Customize voices to match your needs'
+      }
+    ],
+    completion: 0
+  },
+  {
+    id: 'stage3',
+    name: 'Stage 3: Review and Feedback',
+    description: 'Review and provide feedback on generated voices',
+    steps: [
+      {
+        id: 'step1',
+        name: 'Voice Review',
+        status: 'not_approved',
+        description: 'Review generated voices'
+      },
+      {
+        id: 'step2',
+        name: 'Feedback Collection',
+        status: 'not_approved',
+        description: 'Collect feedback from stakeholders'
+      },
+      {
+        id: 'step3',
+        name: 'Iteration',
+        status: 'not_approved',
+        description: 'Iterate based on feedback'
+      }
+    ],
+    completion: 0
+  },
+  {
+    id: 'stage4',
+    name: 'Stage 4: Finalization',
+    description: 'Finalize and export your project',
+    steps: [
+      {
+        id: 'step1',
+        name: 'Final Review',
+        status: 'not_approved',
+        description: 'Final review of all voices'
+      },
+      {
+        id: 'step2',
+        name: 'Export',
+        status: 'not_approved',
+        description: 'Export your project'
+      },
+      {
+        id: 'step3',
+        name: 'Delivery',
+        status: 'not_approved',
+        description: 'Deliver your project'
+      }
+    ],
+    completion: 0
   }
 ];
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { currentProject } = useProject();
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [stages, setStages] = useState<Stage[]>(sampleStages);
 
   useEffect(() => {
-    if (!user) {
+    if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-    
-    if (projects.length > 0) {
-      setSelectedProject(projects[0]);
-    }
-  }, [user, router, projects]);
 
-  if (!user) return null;
+    if (!currentProject) {
+      router.push('/projects');
+      return;
+    }
+  }, [isAuthenticated, currentProject, router]);
 
   const handleLogout = () => {
-    logout();
+    // Logout is handled by the AuthContext
     router.push('/login');
   };
 
   const getStatusColor = (status: StepStatus) => {
     switch (status) {
       case 'approved':
-        return 'bg-green-100 text-green-800';
+        return 'text-green-500';
       case 'not_approved':
-        return 'bg-red-100 text-red-800';
+        return 'text-red-500';
       case 'needs_revision':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'text-yellow-500';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'text-gray-500';
     }
   };
 
   const formatStatus = (status: StepStatus) => {
-    return status.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const calculateStageProgress = (steps: Step[]) => {
-    const approvedSteps = steps.filter(step => step.status === 'approved').length;
-    return Math.round((approvedSteps / steps.length) * 100);
+    const completed = steps.filter(step => step.status === 'approved').length;
+    return Math.round((completed / steps.length) * 100);
   };
 
   const handleStepStatusChange = (stageId: string, stepId: string, newStatus: StepStatus) => {
-    setProjects(prevProjects =>
-      prevProjects.map(project => ({
-        ...project,
-        stages: project.stages.map(stage => {
-          if (stage.id === stageId) {
-            const updatedSteps = stage.steps.map(step =>
-              step.id === stepId ? { ...step, status: newStatus } : step
-            );
-            return {
-              ...stage,
-              steps: updatedSteps,
-              completion: calculateStageProgress(updatedSteps)
-            };
-          }
-          return stage;
-        })
-      }))
-    );
+    setStages(prevStages => {
+      return prevStages.map(stage => {
+        if (stage.id === stageId) {
+          const updatedSteps = stage.steps.map(step => {
+            if (step.id === stepId) {
+              return { ...step, status: newStatus };
+            }
+            return step;
+          });
+          
+          return {
+            ...stage,
+            steps: updatedSteps,
+            completion: calculateStageProgress(updatedSteps)
+          };
+        }
+        return stage;
+      });
+    });
   };
 
+  if (!isAuthenticated || !currentProject) {
+    return null; // Don't render anything while redirecting
+  }
+
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Project Dashboard</h1>
-        <p className="mt-2 text-gray-600">
-          Track your project progress and approve completed stages
-        </p>
-      </div>
-
-      {/* Project Selection */}
-      {projects.length > 1 && (
-        <div className="mb-8">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Project
-          </label>
-          <select
-            value={selectedProject?.id}
-            onChange={(e) => {
-              const project = projects.find(p => p.id === e.target.value);
-              if (project) setSelectedProject(project);
-            }}
-            className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            {projects.map(project => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Stages Progress */}
-      {selectedProject && (
-        <div className="space-y-8">
-          {selectedProject.stages.map((stage) => (
-            <div
-              key={stage.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <Link href="/projects" className="text-gray-500 hover:text-gray-700 mr-4">
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Link>
+            <h1 className="text-xl font-semibold text-gray-900">{currentProject.name}</h1>
+          </div>
+          <div className="flex items-center">
+            <span className="text-sm text-gray-500 mr-4">Project Dashboard</span>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm text-red-600 hover:text-red-800"
             >
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {stage.name}
-                  </h3>
-                  <p className="mt-1 text-gray-600">{stage.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 transition-all duration-300"
-                      style={{ width: `${stage.completion}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">{stage.completion}%</span>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {stage.steps.map((step) => (
-                  <div key={step.id} className="flex items-center justify-between py-2 border-t border-gray-100">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">{step.name}</h4>
-                      <p className="text-sm text-gray-500">{step.description}</p>
-                    </div>
-                    <select
-                      value={step.status}
-                      onChange={(e) => handleStepStatusChange(stage.id, step.id, e.target.value as StepStatus)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${getStatusColor(step.status)}`}
-                    >
-                      {['approved', 'not_approved', 'needs_revision', 'in_progress'].map((status) => (
-                        <option key={status} value={status}>
-                          {formatStatus(status as StepStatus)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => router.push(`/stage${stage.id.split('s')[1]}`)}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                >
-                  View Stage Details →
-                </button>
-              </div>
-            </div>
-          ))}
+              Logout
+            </button>
+          </div>
         </div>
-      )}
+      </header>
+
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          <div className="grid grid-cols-1 gap-6">
+            {stages.map((stage) => (
+              <div key={stage.id} className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">{stage.name}</h3>
+                    <p className="mt-1 max-w-2xl text-sm text-gray-500">{stage.description}</p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-16 h-16 relative">
+                      <svg className="w-full h-full" viewBox="0 0 36 36">
+                        <path
+                          d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="#E5E7EB"
+                          strokeWidth="3"
+                        />
+                        <path
+                          d="M18 2.0845
+                            a 15.9155 15.9155 0 0 1 0 31.831
+                            a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none"
+                          stroke="#3B82F6"
+                          strokeWidth="3"
+                          strokeDasharray={`${stage.completion}, 100`}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-blue-600">
+                        {stage.completion}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200">
+                  <ul className="divide-y divide-gray-200">
+                    {stage.steps.map((step) => (
+                      <li key={step.id} className="px-4 py-4 sm:px-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className={`mr-3 ${getStatusColor(step.status)}`}>
+                              {step.status === 'approved' && <CheckCircleIcon className="h-5 w-5" />}
+                              {step.status === 'not_approved' && <XCircleIcon className="h-5 w-5" />}
+                              {step.status === 'needs_revision' && <ExclamationCircleIcon className="h-5 w-5" />}
+                              {step.status === 'in_progress' && <ClockIcon className="h-5 w-5" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{step.name}</p>
+                              <p className="text-sm text-gray-500">{step.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Link
+                              href={`/${stage.id}/card${step.id.replace('step', '')}`}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              View
+                              <ArrowRightIcon className="ml-1 h-4 w-4" />
+                            </Link>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 } 

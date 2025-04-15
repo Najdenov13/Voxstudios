@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   try {
-    const filePath = path.join(process.env.TEAMS_FOLDER_PATH!, ...params.path);
+    const filePath = path.join(process.cwd(), 'public', 'uploads', ...params.path);
 
     // Check if file exists and get its size
     const stats = await stat(filePath);

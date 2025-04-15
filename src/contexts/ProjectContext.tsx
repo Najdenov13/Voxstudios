@@ -1,60 +1,108 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
 
 interface Project {
   id: string;
   name: string;
-  description: string;
-  status: 'active' | 'completed';
-  lastUpdated: string;
+  createdAt: string;
 }
 
 interface ProjectContextType {
-  currentProject: Project | null;
-  setCurrentProject: (project: Project | null) => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
+  currentProject: Project | null;
+  setCurrentProject: (project: Project | null) => void;
+  createProject: (name: string) => Promise<void>;
+  loading: boolean;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-export function ProjectProvider({ children }: { children: ReactNode }) {
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load projects from localStorage on initial render
   useEffect(() => {
-    try {
-      const storedProjects = localStorage.getItem('projects');
-      if (storedProjects) {
-        const parsedProjects = JSON.parse(storedProjects);
-        if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
-          setProjects(parsedProjects);
-          
-          // If there's a current project in localStorage, set it
-          const storedCurrentProject = localStorage.getItem('currentProject');
-          if (storedCurrentProject) {
-            setCurrentProject(JSON.parse(storedCurrentProject));
-          }
+    // Load projects from API
+    const loadProjects = async () => {
+      try {
+        const response = await fetch('/api/projects/list');
+        const data = await response.json();
+        if (data.projects) {
+          setProjects(data.projects);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Load current project from cookie
+    const loadCurrentProject = () => {
+      const storedProject = Cookies.get('selectedProject');
+      if (storedProject) {
+        try {
+          const parsedProject = JSON.parse(storedProject);
+          setCurrentProject(parsedProject);
+        } catch (error) {
+          console.error('Error parsing project data:', error);
+          Cookies.remove('selectedProject');
         }
       }
-    } catch (error) {
-      console.error('Error loading projects from localStorage:', error);
-    }
+    };
+
+    loadProjects();
+    loadCurrentProject();
   }, []);
 
-  // Save current project to localStorage when it changes
+  // Update cookie when current project changes
   useEffect(() => {
     if (currentProject) {
-      localStorage.setItem('currentProject', JSON.stringify(currentProject));
+      Cookies.set('selectedProject', JSON.stringify(currentProject), { expires: 7 });
     } else {
-      localStorage.removeItem('currentProject');
+      Cookies.remove('selectedProject');
     }
   }, [currentProject]);
 
+  const createProject = async (name: string) => {
+    try {
+      const response = await fetch('/api/projects/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ projectName: name }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setProjects(prev => [...prev, data.project]);
+        setCurrentProject(data.project);
+      } else {
+        throw new Error(data.error || 'Failed to create project');
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
+  };
+
   return (
-    <ProjectContext.Provider value={{ currentProject, setCurrentProject, projects, setProjects }}>
+    <ProjectContext.Provider
+      value={{
+        projects,
+        setProjects,
+        currentProject,
+        setCurrentProject,
+        createProject,
+        loading,
+      }}
+    >
       {children}
     </ProjectContext.Provider>
   );

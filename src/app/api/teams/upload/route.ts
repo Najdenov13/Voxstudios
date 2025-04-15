@@ -1,13 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@microsoft/microsoft-graph-client';
-import { getToken } from '@/lib/auth';
+import { getServerSession } from '@/lib/auth';
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { fileName, fileSize, fileType } = await req.json();
+    const session = await getServerSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { fileName, fileSize, fileType } = await request.json();
 
     // Get access token for Microsoft Graph API
-    const accessToken = await getToken();
+    const accessToken = await session.accessToken;
 
     // Initialize Microsoft Graph client
     const client = Client.init({
