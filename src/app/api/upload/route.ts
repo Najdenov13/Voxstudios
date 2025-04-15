@@ -81,13 +81,24 @@ export async function POST(request: NextRequest) {
       });
 
       // Get Teams drive
+      console.log('Attempting to access Teams drive with:', {
+        teamId: process.env.TEAMS_TEAM_ID,
+        channelId: process.env.TEAMS_CHANNEL_ID
+      });
+
       const teamDrive = await client
         .api(`/teams/${process.env.TEAMS_TEAM_ID}/channels/${process.env.TEAMS_CHANNEL_ID}/filesFolder`)
         .get();
 
       if (!teamDrive || !teamDrive.id) {
+        console.error('Teams drive response:', teamDrive);
         throw new Error('Failed to get Teams drive information');
       }
+
+      console.log('Successfully accessed Teams drive:', {
+        driveId: teamDrive.id,
+        parentReference: teamDrive.parentReference
+      });
 
       // Create folder structure based on file type
       let folderPath = projectName;
@@ -107,6 +118,8 @@ export async function POST(request: NextRequest) {
       for (const folder of folders) {
         currentPath = currentPath ? `${currentPath}/${folder}` : folder;
         try {
+          console.log(`Attempting to access/create folder: ${folder} in path: ${currentPath}`);
+          
           // Try to get the folder
           const folderItem = await client
             .api(`/drives/${teamDrive.parentReference.driveId}/items/${parentId}/children`)
@@ -116,8 +129,10 @@ export async function POST(request: NextRequest) {
           if (folderItem.value && folderItem.value.length > 0) {
             // Folder exists, use its ID
             parentId = folderItem.value[0].id;
+            console.log(`Found existing folder: ${folder} with ID: ${parentId}`);
           } else {
             // Create the folder
+            console.log(`Creating new folder: ${folder}`);
             const newFolder = await client
               .api(`/drives/${teamDrive.parentReference.driveId}/items/${parentId}/children`)
               .post({
@@ -126,10 +141,19 @@ export async function POST(request: NextRequest) {
                 "@microsoft.graph.conflictBehavior": "rename"
               });
             parentId = newFolder.id;
+            console.log(`Created new folder: ${folder} with ID: ${parentId}`);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Error creating/accessing folder ${folder}:`, error);
-          throw new Error(`Failed to create/access folder ${folder}`);
+          console.error('Full error details:', {
+            folder,
+            currentPath,
+            parentId,
+            driveId: teamDrive.parentReference.driveId,
+            error: error.message,
+            response: error.response?.body
+          });
+          throw new Error(`Failed to create/access folder ${folder}: ${error.message}`);
         }
       }
 
