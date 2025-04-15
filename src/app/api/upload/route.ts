@@ -6,6 +6,13 @@ import { ClientSecretCredential } from '@azure/identity';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Add config to ensure environment variables are available
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 // Create a custom response stream
 const encoder = new TextEncoder();
 
@@ -49,9 +56,9 @@ export async function POST(request: NextRequest) {
     try {
       // Verify required environment variables
       const requiredEnvVars = [
-        'AZURE_TENANT_ID',
-        'AZURE_CLIENT_ID',
-        'AZURE_CLIENT_SECRET',
+        'AZURE_AD_TENANT_ID',
+        'AZURE_AD_CLIENT_ID',
+        'AZURE_AD_CLIENT_SECRET',
         'TEAMS_TEAM_ID',
         'TEAMS_CHANNEL_ID'
       ];
@@ -64,9 +71,9 @@ export async function POST(request: NextRequest) {
 
       // Get Azure credentials
       const credential = new ClientSecretCredential(
-        process.env.AZURE_TENANT_ID!,
-        process.env.AZURE_CLIENT_ID!,
-        process.env.AZURE_CLIENT_SECRET!
+        process.env.AZURE_AD_TENANT_ID!,
+        process.env.AZURE_AD_CLIENT_ID!,
+        process.env.AZURE_AD_CLIENT_SECRET!
       );
 
       // Get access token
