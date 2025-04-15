@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readdir } from 'fs/promises';
 import path from 'path';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const projectId = params.projectId;
+    // Get projectId from URL: /api/videos/[projectId]/list -> projectId
+    const projectId = request.nextUrl.pathname.split('/')[3];
+    
     const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
     const videosPath = path.join(publicUploadsPath, projectId, 'final-videos');
 
