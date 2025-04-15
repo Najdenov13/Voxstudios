@@ -1,40 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { readdir } from 'fs/promises';
+import path from 'path';
 
-// Mock data for demonstration purposes
-// In a real application, this would come from a database or cloud storage
-const mockVideos: Record<string, Array<{ name: string; url: string }>> = {
-  'project1': [
-    { name: 'video1.mp4', url: '/uploads/project1/final-videos/video1.mp4' },
-    { name: 'video2.mp4', url: '/uploads/project1/final-videos/video2.mp4' }
-  ],
-  'project2': [
-    { name: 'presentation.mp4', url: '/uploads/project2/final-videos/presentation.mp4' }
-  ]
-};
-
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { projectId: string } }
+) {
   try {
-    // Get projectId from URL: /api/videos/[projectId]/list -> projectId
-    const projectId = request.nextUrl.pathname.split('/')[3];
-    
-    // Check authentication
-    const { isAuthenticated, user } = await auth(request);
-    if (!isAuthenticated || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const projectId = params.projectId;
+    const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
+    const videosPath = path.join(publicUploadsPath, projectId, 'final-videos');
+
+    try {
+      const files = await readdir(videosPath);
+      const videos = files.filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return ['.mp4', '.webm', '.mov', '.avi'].includes(ext);
+      });
+
+      return NextResponse.json({
+        success: true,
+        videos: videos.map(name => ({
+          name,
+          url: `/uploads/${projectId}/final-videos/${encodeURIComponent(name)}`
+        }))
+      });
+    } catch (error) {
+      // If directory doesn't exist or can't be read, return empty list
+      return NextResponse.json({
+        success: true,
+        videos: []
+      });
     }
-
-    // Return mock data for the project
-    // In a real application, this would query a database or cloud storage
-    const videos = mockVideos[projectId] || [];
-
-    return NextResponse.json({
-      success: true,
-      videos
-    });
   } catch (error) {
     console.error('Error listing videos:', error);
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '@/lib/db/config';
+import { mkdir, writeFile } from 'fs/promises';
+import path from 'path';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -13,28 +14,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Project name is required' });
     }
 
-    // Check if project with the same name already exists
-    const existingProject = await db.query(
-      'SELECT * FROM projects WHERE name = $1',
-      [projectName]
-    );
+    // Create projects directory if it doesn't exist
+    const projectsDir = path.join(process.cwd(), 'public', 'uploads', 'projects');
+    await mkdir(projectsDir, { recursive: true });
 
-    if (existingProject.rows.length > 0) {
-      return res.status(400).json({ error: 'A project with this name already exists' });
-    }
+    // Create project directory
+    const projectDir = path.join(projectsDir, projectName);
+    await mkdir(projectDir, { recursive: true });
 
-    // Create project in the database
-    const result = await db.query(
-      'INSERT INTO projects (name) VALUES ($1) RETURNING id, name, created_at',
-      [projectName]
-    );
-
-    const project = result.rows[0];
-
-    // Create project metadata in the database
+    // Create project metadata file
     const metadata = {
       name: projectName,
-      createdAt: project.created_at,
+      createdAt: new Date().toISOString(),
       stages: {
         stage1: { completed: false },
         stage2: { completed: false },
@@ -43,26 +34,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     };
 
-    await db.query(
-      'INSERT INTO project_data (project_id, key, value) VALUES ($1, $2, $3)',
-      [project.id, 'metadata', metadata]
+    await writeFile(
+      path.join(projectDir, 'metadata.json'),
+      JSON.stringify(metadata, null, 2)
     );
 
-    // Create stage data entries
+    // Create stage directories
     const stages = ['stage1', 'stage2', 'stage3', 'stage4'];
     for (const stage of stages) {
-      await db.query(
-        'INSERT INTO project_data (project_id, key, value) VALUES ($1, $2, $3)',
-        [project.id, stage, { completed: false }]
-      );
+      await mkdir(path.join(projectDir, stage), { recursive: true });
     }
 
     return res.status(200).json({ 
       success: true, 
       project: {
-        id: project.id.toString(),
-        name: project.name,
-        createdAt: project.created_at
+        id: projectName,
+        name: projectName,
+        createdAt: metadata.createdAt
       }
     });
   } catch (error) {

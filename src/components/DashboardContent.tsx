@@ -1,43 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import React from 'react';
 
-type StepStatus = 'pending' | 'approved' | 'disapproved' | 'in_progress';
-
-interface Step {
-  title: string;
-  description: string;
-  component: string;
-  status: StepStatus;
+interface DashboardContentProps {
+  children: React.ReactNode;
 }
 
-interface Stage {
-  id: number;
-  title: string;
-  description: string;
-  href: string;
-  status: StepStatus;
-  steps: Step[];
-}
-
-const initialStages: Stage[] = [
-  // ... copy all the stages from page.tsx ...
-];
-
-export default function DashboardContent() {
-  const searchParams = useSearchParams();
-  const projectId = searchParams?.get('project') || null;
-  const [stages, setStages] = useState<Stage[]>(initialStages);
-  const [expandedStages, setExpandedStages] = useState<number[]>([]);
-
-  // ... copy all the functions from page.tsx ...
-
+const DashboardContent: React.FC<DashboardContentProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ... copy all the JSX from page.tsx ... */}
-    </div>
+    <main className="flex-1 p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {children}
+      </div>
+    </main>
   );
-} 
+};
+
+export default DashboardContent; 

@@ -3,14 +3,12 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { stat } from 'fs/promises';
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
   try {
-    // Get path from URL: /api/videos/path/to/video.mp4 -> ['path', 'to', 'video.mp4']
-    const pathSegments = request.nextUrl.pathname
-      .split('/')
-      .filter(segment => segment !== '' && segment !== 'api' && segment !== 'videos');
-
-    const filePath = path.join(process.cwd(), 'public', 'uploads', ...pathSegments);
+    const filePath = path.join(process.cwd(), 'public', 'uploads', ...params.path);
 
     // Check if file exists and get its size
     const stats = await stat(filePath);
