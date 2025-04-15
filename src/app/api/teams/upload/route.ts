@@ -13,6 +13,10 @@ export async function POST(request: NextRequest) {
 
     // Get access token for Microsoft Graph API
     const accessToken = await session.accessToken;
+    
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Access token not available' }, { status: 401 });
+    }
 
     // Initialize Microsoft Graph client
     const client = Client.init({
