@@ -23,9 +23,7 @@ const nextConfig = {
     },
     responseLimit: '50mb',
   },
-  serverless: {
-    maxDuration: 60, // Set to maximum allowed value for Hobby plan
-  },
+  // Remove the serverless config and use Vercel's configuration file instead
 };
 
 module.exports = nextConfig; 

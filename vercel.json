@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/upload": {
+      "maxDuration": 60
+    },
+    "api/upload-final-video": {
+      "maxDuration": 60
+    },
+    "api/videos/[...path]": {
+      "maxDuration": 60
+    }
+  }
+} 
