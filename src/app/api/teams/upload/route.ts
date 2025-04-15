@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@microsoft/microsoft-graph-client';
-import { getServerSession } from '@/lib/auth';
+import { auth } from '@/auth';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication
+    const { isAuthenticated, user } = await auth(request);
+    if (!isAuthenticated || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    const { fileName, fileSize, fileType } = await request.json();
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const accessToken = formData.get('accessToken') as string;
 
-    // Get access token for Microsoft Graph API
-    const accessToken = await session.accessToken;
+    if (!file || !accessToken) {
+      return NextResponse.json(
+        { error: 'File and access token are required' },
+        { status: 400 }
+      );
+    }
 
-    // Initialize Microsoft Graph client
     const client = Client.init({
       authProvider: (done) => {
-        done(null, accessToken);
+        done(null, accessToken || null);
       },
     });
 
@@ -35,18 +44,18 @@ export async function POST(request: NextRequest) {
       .get();
 
     const uploadSession = await client
-      .api(`/drives/${driveItem.parentReference.driveId}/items/${driveItem.id}:/${fileName}:/createUploadSession`)
+      .api(`/drives/${driveItem.parentReference.driveId}/items/${driveItem.id}:/${file.name}:/createUploadSession`)
       .post({
         item: {
           "@microsoft.graph.conflictBehavior": "rename",
-          name: fileName,
-          fileSize: fileSize
+          name: file.name,
+          fileSize: file.size
         },
       });
 
     return NextResponse.json({
       uploadUrl: uploadSession.uploadUrl,
-      folderPath: `Teams > ${teamId} > ${channelId} > ${fileName}`,
+      folderPath: `Teams > ${teamId} > ${channelId} > ${file.name}`,
       expirationDateTime: uploadSession.expirationDateTime
     });
   } catch (error) {
