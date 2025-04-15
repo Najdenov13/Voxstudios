@@ -1,12 +1,12 @@
 {
   "functions": {
-    "api/upload": {
+    "src/app/api/upload/route": {
       "maxDuration": 60
     },
-    "api/upload-final-video": {
+    "src/app/api/upload-final-video/route": {
       "maxDuration": 60
     },
-    "api/videos/[...path]": {
+    "src/app/api/videos/[...path]/route": {
       "maxDuration": 60
     }
   }
