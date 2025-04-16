@@ -1,5 +1,6 @@
 import React from 'react';
 import { Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { VoiceProvider } from '@/contexts/VoiceContext';
@@ -24,6 +25,7 @@ export default function RootLayout({
           <ProjectProvider>
             <VoiceProvider>
               {children}
+              <Analytics />
             </VoiceProvider>
           </ProjectProvider>
         </AuthProvider>
